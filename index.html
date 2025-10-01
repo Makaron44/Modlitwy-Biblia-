@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="pl" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Dziennik modlitw biblijnych — 30 dni</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0e0f13">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <style>
+    :root{ --bg:#0e0f13; --panel:#171923; --muted:#9096a5; --text:#e9edf5; --accent:#7aa2ff;
+           --ok:#7ad97a; --border:#2a2f3f; --radius:14px; --day:#131621; --btn:#131621; --header:rgba(14,15,19,.78); }
+    html[data-theme="light"]{ --bg:#f6f8fc; --panel:#fff; --muted:#405063; --text:#0b1220; --accent:#1f3aec;
+           --ok:#1e8a4d; --border:#cfd7e6; --day:#ffffff; --btn:#ffffff; --header:rgba(255,255,255,.94); }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Helvetica,Arial;
+         padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);}
+    header{position:sticky;top:0;z-index:10;background:var(--header);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+    .wrap{max-width:1000px;margin:0 auto;padding:12px 16px}
+    h1{margin:6px 0 2px;font-size:clamp(22px,4vw,30px)}
+    .muted{color:var(--muted)} .small{font-size:13px}
+    .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 0}
+    button{appearance:none;border:1px solid var(--border);background:var(--btn);color:var(--text);
+           padding:10px 14px;border-radius:12px;font-weight:700}
+    main{padding:16px}
+    .panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px}
+    .kicker{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:800;margin-bottom:8px}
+    .days{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+    .day{padding:12px;border:1px solid var(--border);background:var(--day);border-radius:12px;cursor:pointer}
+    .day h3{margin:0 0 6px;font-size:15px}
+    .pill{display:inline-block;border:1px solid var(--border);padding:6px 10px;border-radius:999px;font-size:12px;background:#0f121b}
+    html[data-theme="light"] .pill{background:#eef2ff}
+    label{display:block;margin:10px 0 6px;font-weight:800}
+    textarea{width:100%;min-height:110px;border-radius:12px;border:1px solid var(--border);background:#0f121b;color:var(--text);padding:10px;resize:vertical;font:inherit;line-height:1.6}
+    html[data-theme="light"] textarea{background:#fff}
+    .hidden{display:none}
+    .footer{opacity:.75;font-size:12px;text-align:center;margin-top:10px}
+    /* Tabela ściągi */
+    .grid2{display:grid;grid-template-columns:1fr;gap:12px}
+    @media(min-width:760px){ .grid2{grid-template-columns:1fr 1fr} }
+    table{width:100%;border-collapse:separate;border-spacing:0;overflow:hidden;border:1px solid var(--border);border-radius:12px}
+    th,td{padding:10px 12px;border-bottom:1px solid var(--border)}
+    th{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);text-align:left;background:rgba(255,255,255,.02)}
+    tr:last-child td{border-bottom:0}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>Dziennik modlitw biblijnych — 30 dni</h1>
+      <div class="muted small">Offline • zapis lokalny • jasny/ciemny • PWA • eksport/import</div>
+      <div class="toolbar">
+        <button id="themeBtn" type="button">Tryb: <span id="themeLabel">ciemny</span></button>
+        <button id="exportBtn" type="button">Eksport danych</button>
+        <input type="file" id="importFile" accept="application/json" style="display:none">
+        <button id="importBtn" type="button">Import danych</button>
+        <button id="resetBtn" type="button">Wyczyść</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- LISTA DNI -->
+    <section class="panel">
+      <div class="kicker">Lista dni</div>
+      <div id="days" class="days"></div>
+    </section>
+
+    <!-- SZCZEGÓŁY -->
+    <section class="panel">
+      <div class="kicker">Szczegóły</div>
+      <h2 id="dayTitle">Wybierz dzień</h2>
+      <p class="muted small">Najpierw znajdź podany fragment w swojej Biblii, przeczytaj go, a poniżej wpisz własną modlitwę lub wklej wybrane tłumaczenia.</p>
+
+      <div id="detail" class="hidden">
+        <div id="refTag" style="margin:6px 0 12px"></div>
+
+        <label for="myPrayer">Moja modlitwa</label>
+        <textarea id="myPrayer" placeholder="Twoja osobista modlitwa na podstawie przeczytanego fragmentu..."></textarea>
+
+        <label for="translations">Inne tłumaczenia / cytaty</label>
+        <textarea id="translations" placeholder="Tu możesz wkleić różne tłumaczenia lub wersje, które chcesz porównać."></textarea>
+
+        <label for="notes">Notatki</label>
+        <textarea id="notes" placeholder="Myśli, słowa kluczowe, decyzje..."></textarea>
+
+        <div class="toolbar" style="margin-top:10px">
+          <button id="saveBtn" type="button" style="background:var(--accent);color:#fff;border-color:transparent">Zapisz</button>
+          <button id="doneBtn" type="button">Oznacz jako zrobione</button>
+          <span id="status" class="muted small"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ŚCIĄGA – SKRÓTY -->
+    <section class="panel">
+      <div class="kicker">Ściąga</div>
+      <h2 style="margin-top:0">Skróty ksiąg biblijnych</h2>
+      <p class="muted small">Szybka pomoc do odnajdywania skrótów w planie.</p>
+
+      <div class="grid2">
+        <div>
+          <h3>📖 Stary Testament</h3>
+          <table>
+            <thead><tr><th>Skrót</th><th>Pełna nazwa</th></tr></thead>
+            <tbody id="tblOT"></tbody>
+          </table>
+        </div>
+        <div>
+          <h3>📖 Nowy Testament</h3>
+          <table>
+            <thead><tr><th>Skrót</th><th>Pełna nazwa</th></tr></thead>
+            <tbody id="tblNT"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer">Dane są przechowywane lokalnie na tym urządzeniu (localStorage). Użyj „Eksport danych”, aby zrobić kopię zapasową.</div>
+  </main>
+
+  <script>
+    (function(){
+      // 30 dni – etykiety
+      var DAYS = [
+        "1 Sm 2,1–10 — Modlitwa Anny",
+        "2 Sm 7,18–29 — Modlitwa Dawida",
+        "1 Krl 8,22–53 — Modlitwa Salomona",
+        "2 Krl 19,15–19 — Modlitwa Ezechiasza",
+        "Ne 1,5–11 — Modlitwa Nehemiasza",
+        "Dn 2,20–23 — Dziękczynienie Daniela",
+        "Dn 9,3–19 — Wyznanie i prośba Daniela",
+        "Jon 2,3–10 — Modlitwa Jonasza",
+        "Hab 3,1–19 — Modlitwa Habakuka",
+        "Ps 23 — Ufność Panu",
+        "Ps 51 — Pokuta Dawida",
+        "Ps 63 — Tęsknota za Bogiem",
+        "Ps 91 — Pod opieką Najwyższego",
+        "Ps 139 — Bóg mnie zna",
+        "1 Krn 4,10 — Modlitwa Jabesa",
+        "Łk 1,46–55 — Magnificat (Maryja)",
+        "Łk 1,68–79 — Benedictus (Zachariasz)",
+        "Łk 2,29–32 — Nunc dimittis (Symeon)",
+        "Mt 6,9–13 — Modlitwa Pańska",
+        "J 17,1–26 — Modlitwa Jezusa",
+        "Dz 4,24–30 — O odwagę dla wspólnoty",
+        "Dz 7,59–60 — Modlitwa Szczepana",
+        "Rz 11,33–36 — Uwielbienie Pawła",
+        "Rz 15,5–6.13 — O jedność i nadzieję",
+        "Ef 1,15–23 — O poznanie Boga",
+        "Ef 3,14–21 — O umocnienie w wierze",
+        "Flp 1,3–11 — Dziękczynienie Pawła",
+        "Kol 1,9–14 — O mądrość i siłę",
+        "1 Tes 3,11–13 — O miłość i świętość",
+        "Ap 22,20 — „Przyjdź, Panie Jezu”"
+      ];
+
+      // Ściąga – ST i NT
+      var OT = [
+        ["Rdz","Księga Rodzaju"],["Wj","Księga Wyjścia"],["Kpł","Księga Kapłańska"],["Lb","Księga Liczb"],["Pwt","Księga Powtórzonego Prawa"],
+        ["Joz","Księga Jozuego"],["Sdz","Księga Sędziów"],["Rt","Księga Rut"],["1 Sm","1. Księga Samuela"],["2 Sm","2. Księga Samuela"],
+        ["1 Krl","1. Księga Królewska"],["2 Krl","2. Księga Królewska"],["1 Krn","1. Księga Kronik"],["2 Krn","2. Księga Kronik"],
+        ["Ezd","Księga Ezdrasza"],["Ne","Księga Nehemiasza"],["Tb","Księga Tobiasza"],["Jdt","Księga Judyty"],["Est","Księga Estery"],
+        ["1 Mch","1. Księga Machabejska"],["2 Mch","2. Księga Machabejska"],["Hi","Księga Hioba"],["Ps","Księga Psalmów"],
+        ["Prz","Księga Przysłów"],["Koh","Księga Koheleta"],["Pnp","Pieśń nad Pieśniami"],["Mdr","Księga Mądrości"],["Syr","Księga Syracha"],
+        ["Iz","Księga Izajasza"],["Jr","Księga Jeremiasza"],["Lm","Lamentacje"],["Ba","Księga Barucha"],["Ez","Księga Ezechiela"],
+        ["Dn","Księga Daniela"],["Oz","Księga Ozeasza"],["Jl","Księga Joela"],["Am","Księga Amosa"],["Ab","Księga Abdiasza"],
+        ["Jon","Księga Jonasza"],["Mi","Księga Micheasza"],["Na","Księga Nahuma"],["Ha","Księga Habakuka"],["So","Księga Sofoniasza"],
+        ["Ag","Księga Aggeusza"],["Za","Księga Zachariasza"],["Ml","Księga Malachiasza"]
+      ];
+      var NT = [
+        ["Mt","Ewangelia wg św. Mateusza"],["Mk","Ewangelia wg św. Marka"],["Łk","Ewangelia wg św. Łukasza"],["J","Ewangelia wg św. Jana"],
+        ["Dz","Dzieje Apostolskie"],["Rz","List do Rzymian"],["1 Kor","1. List do Koryntian"],["2 Kor","2. List do Koryntian"],
+        ["Ga","List do Galatów"],["Ef","List do Efezjan"],["Flp","List do Filipian"],["Kol","List do Kolosan"],
+        ["1 Tes","1. List do Tesaloniczan"],["2 Tes","2. List do Tesaloniczan"],["1 Tm","1. List do Tymoteusza"],["2 Tm","2. List do Tymoteusza"],
+        ["Tt","List do Tytusa"],["Flm","List do Filemona"],["Hbr","List do Hebrajczyków"],["Jk","List św. Jakuba"],
+        ["1 P","1. List św. Piotra"],["2 P","2. List św. Piotra"],["1 J","1. List św. Jana"],["2 J","2. List św. Jana"],
+        ["3 J","3. List św. Jana"],["Jud","List św. Judy"],["Ap","Apokalipsa św. Jana"]
+      ];
+
+      var STORAGE = "pj_state_v2";
+      var THEMEKEY = "pj_theme";
+
+      function qs(id){ return document.getElementById(id); }
+      function save(state){ localStorage.setItem(STORAGE, JSON.stringify(state)); setStatus("Zapisano ✔"); }
+      function load(){ try{ return JSON.parse(localStorage.getItem(STORAGE)) || {}; } catch(e){ return {}; } }
+      function setStatus(t){ var s=qs("status"); s.textContent=t; setTimeout(function(){ s.textContent=""; }, 1500); }
+
+      var state = load(), cur = null;
+
+      function renderDays(){
+        var box = qs("days"); box.innerHTML = "";
+        for (var i=0;i<DAYS.length;i++){
+          var n=i+1, label=DAYS[i], key="d"+n, done = state[key] && state[key].done;
+          var card = document.createElement("div"); card.className="day"; if(done) card.style.borderColor="var(--ok)";
+          var h = document.createElement("h3"); h.textContent="Dzień "+n+": "+label;
+          var ref = document.createElement("div"); ref.innerHTML='<span class="pill">'+ label.split(" — ")[0] +'</span>';
+          card.appendChild(h); card.appendChild(ref);
+          (function(n){ card.addEventListener("click", function(){ openDay(n); }); })(n);
+          box.appendChild(card);
+        }
+      }
+
+      function openDay(n){
+        cur = n; var label = DAYS[n-1], key="d"+n;
+        qs("dayTitle").textContent = "Dzień " + n + " — " + label;
+        qs("refTag").innerHTML = '<span class="pill">'+ label.split(" — ")[0] +'</span>';
+        qs("myPrayer").value = (state[key] && state[key].myPrayer) || "";
+        qs("translations").value = (state[key] && state[key].translations) || "";
+        qs("notes").value = (state[key] && state[key].notes) || "";
+        qs("doneBtn").textContent = (state[key] && state[key].done) ? "Oznacz jako niezrobione" : "Oznacz jako zrobione";
+        qs("detail").classList.remove("hidden");
+      }
+
+      // Zapisy
+      qs("saveBtn").addEventListener("click", function(){
+        if(!cur) return; var key="d"+cur;
+        state[key]=state[key]||{};
+        state[key].myPrayer=qs("myPrayer").value;
+        state[key].translations=qs("translations").value;
+        state[key].notes=qs("notes").value;
+        save(state); renderDays();
+      });
+      qs("doneBtn").addEventListener("click", function(){
+        if(!cur) return; var key="d"+cur;
+        state[key]=state[key]||{}; state[key].done=!state[key].done;
+        save(state); renderDays(); openDay(cur);
+      });
+
+      // Tema
+      function applyTheme(t){ document.documentElement.setAttribute("data-theme", t); qs("themeLabel").textContent=(t==="light")?"jasny":"ciemny"; localStorage.setItem(THEMEKEY,t); }
+      function toggleTheme(){ var t=localStorage.getItem(THEMEKEY)||"dark"; applyTheme(t==="dark"?"light":"dark"); }
+      qs("themeBtn").addEventListener("click", toggleTheme);
+      applyTheme(localStorage.getItem(THEMEKEY) || (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light":"dark"));
+
+      // Eksport / Import / Reset
+      qs("exportBtn").addEventListener("click", function(){
+        var blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+        var url=URL.createObjectURL(blob); var a=document.createElement("a"); a.href=url; a.download="dziennik_modlitw_dane.json"; a.click(); URL.revokeObjectURL(url);
+      });
+      qs("importBtn").addEventListener("click", function(){ qs("importFile").click(); });
+      qs("importFile").addEventListener("change", function(e){
+        var f=e.target.files[0]; if(!f) return;
+        var r=new FileReader();
+        r.onload=function(){ try{ var data=JSON.parse(r.result); if(data&&typeof data==="object"){ state=data; save(state); renderDays(); alert("Zaimportowano dane."); } else alert("Nieprawidłowy plik JSON."); }catch(err){ alert("Błąd importu JSON."); } };
+        r.readAsText(f);
+      });
+      qs("resetBtn").addEventListener("click", function(){
+        if(confirm("Usunąć wszystkie lokalne dane?")){ localStorage.removeItem(STORAGE); state={}; cur=null; renderDays(); qs("detail").classList.add("hidden"); qs("dayTitle").textContent="Wybierz dzień"; }
+      });
+
+      // Render ściągi
+      function renderTable(arr, tbodyId){
+        var tb = document.getElementById(tbodyId); tb.innerHTML="";
+        arr.forEach(function(row){
+          var tr=document.createElement("tr");
+          var td1=document.createElement("td"); td1.textContent=row[0];
+          var td2=document.createElement("td"); td2.textContent=row[1];
+          tr.appendChild(td1); tr.appendChild(td2); tb.appendChild(tr);
+        });
+      }
+      renderTable(OT, "tblOT");
+      renderTable(NT, "tblNT");
+
+      // SW
+      if('serviceWorker' in navigator){
+        window.addEventListener('load', function(){ navigator.serviceWorker.register('./sw.js').catch(function(){}); });
+      }
+
+      renderDays();
+    })();
+  </script>
+</body>
+</html>
